@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediQuery Agent — Pay-per-query medical Q&amp;A</title>
+<style>
+  :root { --teal: #0e7c7b; --teal-dark: #0a5e5d; --bg: #f4f8f8; --ink: #1d2b2a; --muted: #5c6f6d; --card: #ffffff; --line: #dce8e7; --amber: #b45309; --amber-bg: #fef3e2; --red: #b91c1c; --red-bg: #fdeaea; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--ink); }
+  header { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); color: #fff; padding: 28px 20px; }
+  header .wrap { max-width: 760px; margin: 0 auto; }
+  header h1 { margin: 0 0 6px; font-size: 26px; }
+  header p { margin: 0; opacity: .9; font-size: 14px; }
+  main { max-width: 760px; margin: 24px auto 60px; padding: 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+  label { font-weight: 600; font-size: 14px; display: block; margin-bottom: 8px; }
+  textarea { width: 100%; min-height: 90px; border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-size: 15px; resize: vertical; font-family: inherit; }
+  textarea:focus { outline: 2px solid var(--teal); border-color: var(--teal); }
+  .row { display: flex; gap: 12px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  button.primary { background: var(--teal); color: #fff; border: none; border-radius: 8px; padding: 12px 22px; font-size: 15px; font-weight: 700; cursor: pointer; }
+  button.primary:hover { background: var(--teal-dark); }
+  button.primary:disabled { opacity: .5; cursor: wait; }
+  .hint { font-size: 13px; color: var(--muted); }
+  #paypal-buttons { margin-top: 16px; max-width: 420px; }
+  .hidden { display: none !important; }
+  .answer { white-space: pre-wrap; line-height: 1.6; font-size: 15px; }
+  .answer h3, .citations h3, .receipt h3 { margin: 0 0 10px; font-size: 15px; }
+  .citations { margin-top: 16px; border-top: 1px dashed var(--line); padding-top: 14px; }
+  .citation { background: #f7fbfb; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 13.5px; }
+  .citation .src { font-weight: 700; color: var(--teal-dark); margin-bottom: 4px; font-size: 12.5px; }
+  .receipt { margin-top: 16px; border-top: 1px dashed var(--line); padding-top: 14px; font-size: 13.5px; color: var(--muted); }
+  .receipt code { background: #eef4f4; padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
+  .notice { border-radius: 8px; padding: 12px 14px; font-size: 14px; margin-top: 12px; }
+  .notice.warn { background: var(--amber-bg); color: var(--amber); border: 1px solid #f3d9a8; }
+  .notice.err { background: var(--red-bg); color: var(--red); border: 1px solid #f3b8b8; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 3px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -3px; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .disclaimer { font-size: 12px; color: var(--muted); margin-top: 24px; text-align: center; }
+  footer { text-align: center; font-size: 12px; color: var(--muted); padding: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>&#x2695; MediQuery Agent</h1>
+    <p>Pay-per-query medical Q&amp;A — grounded answers with citations, powered by RAG. You only pay for the answers you need.</p>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <label for="q">Your medical question</label>
+    <textarea id="q" placeholder="e.g. What are the common symptoms of type 2 diabetes?"></textarea>
+    <div class="row">
+      <button class="primary" id="askBtn">Ask — <span id="price">$1.00</span></button>
+      <span class="hint">Payment via PayPal sandbox. The answer is generated only after payment completes.</span>
+    </div>
+    <div id="errBox"></div>
+  </div>
+
+  <div class="card hidden" id="payCard">
+    <label>Complete your payment</label>
+    <div id="paypal-buttons"></div>
+    <div class="hint" style="margin-top:8px">Sandbox mode — use a PayPal sandbox buyer account. No real money moves.</div>
+  </div>
+
+  <div class="card hidden" id="loadingCard">
+    <div><span class="spinner" style="border-color: rgba(14,124,123,.25); border-top-color: var(--teal);"></span> Payment confirmed — generating your grounded answer…</div>
+  </div>
+
+  <div class="card hidden" id="answerCard">
+    <div class="answer"><h3>Answer</h3><div id="answerText"></div></div>
+    <div id="abstainBox"></div>
+    <div class="citations"><h3>Sources</h3><div id="citations"></div></div>
+    <div class="receipt"><h3>Receipt</h3><div id="receipt"></div></div>
+  </div>
+
+  <p class="disclaimer">Educational demo for the PayPal AI Hackathon. Answers are generated from the demo knowledge base and are not medical advice. Always consult a qualified professional.</p>
+</main>
+
+<footer>MediQuery Agent &middot; PayPal sandbox &middot; RAG (Spring Boot + pgvector + Ollama)</footer>
+
+<script>
+(function () {
+  "use strict";
+  var price = "1.00", currency = "USD", paypalClientId = null, currentOrderId = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var askBtn = $("askBtn"), q = $("q"), errBox = $("errBox");
+
+  function showError(msg) {
+    errBox.innerHTML = '<div class="notice err">' + escapeHtml(msg) + "</div>";
+  }
+  function clearError() { errBox.innerHTML = ""; }
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // ---- boot: fetch public config ----
+  fetch("/api/config").then(function (r) { return r.json(); }).then(function (cfg) {
+    price = cfg.pricePerQuery || price;
+    currency = cfg.currency || currency;
+    paypalClientId = cfg.paypalClientId;
+    $("price").textContent = "$" + price;
+  }).catch(function () { /* defaults stand */ });
+
+  function loadPayPalSdk() {
+    return new Promise(function (resolve, reject) {
+      if (window.paypal && window.paypal.Buttons) { resolve(); return; }
+      if (!paypalClientId || paypalClientId.indexOf("TODO") === 0) {
+        reject(new Error("PayPal sandbox client ID is not configured on the server."));
+        return;
+      }
+      var s = document.createElement("script");
+      s.src = "https://www.paypal.com/sdk/js?client-id=" + encodeURIComponent(paypalClientId)
+        + "&currency=" + encodeURIComponent(currency) + "&intent=capture&components=buttons";
+      s.onload = resolve;
+      s.onerror = function () { reject(new Error("Could not load the PayPal JS SDK.")); };
+      document.head.appendChild(s);
+    });
+  }
+
+  // ---- step 1: ask -> create order ----
+  askBtn.addEventListener("click", function () {
+    clearError();
+    var question = q.value.trim();
+    if (!question) { showError("Please type a question first."); return; }
+    askBtn.disabled = true;
+    askBtn.innerHTML = '<span class="spinner"></span>Creating order…';
+    fetch("/api/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: question })
+    }).then(function (r) {
+      if (!r.ok) throw new Error("Could not create a PayPal order (HTTP " + r.status + ").");
+      return r.json();
+    }).then(function (order) {
+      currentOrderId = order.orderId;
+      $("payCard").classList.remove("hidden");
+      return loadPayPalSdk().then(renderButtons);
+    }).catch(function (e) {
+      showError(e.message);
+    }).finally(function () {
+      askBtn.disabled = false;
+      askBtn.innerHTML = "Ask — $" + price;
+    });
+  });
+
+  // ---- step 2: payer approves with the PayPal button ----
+  function renderButtons() {
+    $("paypal-buttons").innerHTML = "";
+    window.paypal.Buttons({
+      style: { layout: "vertical", color: "gold", shape: "rect", label: "paypal" },
+      createOrder: function () { return currentOrderId; }, // server-created order
+      onApprove: function () {
+        $("payCard").classList.add("hidden");
+        $("loadingCard").classList.remove("hidden");
+        clearError();
+        return fetch("/api/ask/" + encodeURIComponent(currentOrderId) + "/capture", { method: "POST" })
+          .then(function (r) {
+            if (r.status === 402) throw new Error("Payment was not completed. Please try again.");
+            if (!r.ok) throw new Error("Capture failed (HTTP " + r.status + ").");
+            return r.json();
+          })
+          .then(showAnswer)
+          .catch(function (e) { showError(e.message); })
+          .finally(function () { $("loadingCard").classList.add("hidden"); });
+      },
+      onCancel: function () { showError("Payment was cancelled. You can ask again whenever you're ready."); },
+      onError: function () { showError("The PayPal button hit an error. Please try again."); }
+    }).render("#paypal-buttons");
+  }
+
+  // ---- step 3: render answer + citations + receipt ----
+  function showAnswer(data) {
+    $("answerText").textContent = data.answer || "(empty answer)";
+    var cites = $("citations"); cites.innerHTML = "";
+    (data.citations || []).forEach(function (c, i) {
+      var d = document.createElement("div");
+      d.className = "citation";
+      var src = document.createElement("div");
+      src.className = "src";
+      src.textContent = "[" + (i + 1) + "] doc: " + c.docId + " · chunk " + c.chunkId;
+      var txt = document.createElement("div");
+      txt.textContent = c.text;
+      d.appendChild(src); d.appendChild(txt);
+      cites.appendChild(d);
+    });
+    if (!data.citations || data.citations.length === 0) {
+      $("abstainBox").innerHTML = '<div class="notice warn">The knowledge base had no relevant information for this question, so the model abstained instead of guessing.</div>';
+    } else {
+      $("abstainBox").innerHTML = "";
+    }
+    $("receipt").innerHTML = "Payment <code>" + escapeHtml(data.paymentId) + "</code> · "
+      + escapeHtml(data.amount) + " " + escapeHtml(data.currency);
+    $("answerCard").classList.remove("hidden");
+    $("answerCard").scrollIntoView({ behavior: "smooth" });
+  }
+})();
+</script>
+</body>
+</html>

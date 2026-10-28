@@ -1,0 +1,46 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mediquery}
+    username: ${DB_USER:mediquery}
+    password: ${DB_PASSWORD:mediquery}
+  # schema.sql runs BEFORE JPA startup: creates the pgvector extension + table.
+  sql:
+    init:
+      mode: always
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+llm:
+  # Provider profile: 'ollama' (default, free, local) or 'openai' (paid).
+  # Both speak the OpenAI-compatible HTTP API (/v1/embeddings, /v1/chat/completions).
+  provider: ${LLM_PROVIDER:ollama}
+  base-url: ${LLM_BASE_URL:http://localhost:11434/v1}
+  # Only needed for the OpenAI profile (LLM_PROVIDER=openai). Ollama needs no key.
+  api-key: ${OPENAI_API_KEY:}
+  embedding-model: ${LLM_EMBEDDING_MODEL:nomic-embed-text}
+  # nomic-embed-text -> 768 dims. MUST match vector(N) in schema.sql and DocumentChunk.
+  # (OpenAI profile: text-embedding-3-small -> 1536, so set 1536 there too.)
+  embedding-dimensions: 768
+  chat-model: ${LLM_CHAT_MODEL:llama3.1:8b}
+
+paypal:
+  # TODO: create a REST App at https://developer.paypal.com/dashboard/applications/sandbox
+  # and export its credentials before running. Never commit real credentials.
+  base-url: ${PAYPAL_BASE_URL:https://api-m.sandbox.paypal.com}
+  client-id: ${PAYPAL_CLIENT_ID:TODO-set-your-sandbox-client-id}
+  client-secret: ${PAYPAL_CLIENT_SECRET:TODO-set-your-sandbox-client-secret}
+
+mediquery:
+  price-per-query: ${PRICE_PER_QUERY:1.00}
+  currency: ${CURRENCY:USD}
+  # Used for the PayPal redirect flow (application_context return/cancel URLs).
+  return-url: ${RETURN_URL:http://localhost:8080/}
+  cancel-url: ${CANCEL_URL:http://localhost:8080/}

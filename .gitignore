@@ -1,0 +1,22 @@
+# Build outputs
+target/
+*.class
+*.jar
+*.war
+
+# Environment / secrets (never commit)
+.env
+.env.*
+*.pem
+*.key
+
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
