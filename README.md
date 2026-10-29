@@ -5,6 +5,10 @@ You only pay for the answers you need.
 
 Built for the **PayPal AI Hackathon** (deadline 2026-11-12).
 
+## Existing work and hackathon contributions
+
+The project began in September 2026. Before October 1, the medical RAG core already existed. During the hackathon submission period in October, we added PayPal sandbox pay-per-query checkout, server-side order creation and payment-capture gating, the browser demonstration with sources and receipts, and the recording, judge testing guide, and submission documentation. The submitted application builds upon that existing RAG core.
+
 ## Functional demo for judges — free local setup
 
 **[Open the complete demo setup and testing guide](docs/JUDGES.md)** · **[Watch the 1:43 demonstration video](https://www.youtube.com/watch?v=ZNIy8Wo2Ko8)**
