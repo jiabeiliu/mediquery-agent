@@ -5,6 +5,12 @@ You only pay for the answers you need.
 
 Built for the **PayPal AI Hackathon** (deadline 2026-11-12).
 
+## Functional demo for judges — free local setup
+
+**[Open the complete demo setup and testing guide](docs/JUDGES.md)** · **[Watch the 1:43 demonstration video](https://www.youtube.com/watch?v=ZNIy8Wo2Ko8)**
+
+The functional demo runs locally with Java, PostgreSQL/pgvector, and Ollama. There is no hosted application and no paid AI API is required. The guide covers database creation, model downloads, free PayPal sandbox configuration, seed data, and step-by-step success, abstention, and payment-gate checks. Evaluators use their own free sandbox app and buyer account; no secrets are published in the repository. All demonstration payments are sandbox transactions, with no real money charged.
+
 ## How it works
 
 1. You type a medical question and hit **Ask**.
@@ -64,19 +70,9 @@ Built for the **PayPal AI Hackathon** (deadline 2026-11-12).
 - PostgreSQL with the `pgvector` extension
 - Ollama with `nomic-embed-text` and `llama3.1:8b` pulled
 
-```bash
-# PostgreSQL + pgvector (macOS/Homebrew example)
-brew install postgresql@15 pgvector
-brew services start postgresql@15
-createdb mediquery
-psql mediquery -c "CREATE USER mediquery WITH PASSWORD 'mediquery'; GRANT ALL ON DATABASE mediquery TO mediquery;"
+Follow [the judge setup guide](docs/JUDGES.md#2-create-a-dedicated-local-demonstration-database) to install pgvector for your active PostgreSQL version, create the database with the correct owner, and pull both Ollama models.
 
-# Ollama models
-ollama pull nomic-embed-text
-ollama pull llama3.1:8b
-```
-
-### 2. PayPal sandbox app (TODO — required for payments)
+### 2. PayPal sandbox app (required for payments)
 
 1. Go to https://developer.paypal.com/dashboard/applications/sandbox and log in.
 2. Create a REST App (or use the default one) and copy its **Client ID** and **Secret**.
@@ -104,8 +100,8 @@ mvn spring-boot:run
 ### 4. Load demo documents
 
 ```bash
-curl -X POST localhost:8080/api/ingest -H 'Content-Type: application/json' \
-  -d '{"docId":"diabetes-guide","text":"<paste medical text here>"}'
+# Run once against a fresh demo database, while the app is running.
+python3 scripts/seed.py
 ```
 
 Then ask questions in the UI, approve with the sandbox buyer account, and get
@@ -118,10 +114,12 @@ a cited answer.
   That project's full pipeline was verified end-to-end on macOS.
 - The **PayPal module wires the real sandbox REST endpoints**
   (`/v1/oauth2/token`, `/v2/checkout/orders`, `/…/capture`) with no SDK.
-    The PayPal sandbox payment flow has been verified with real sandbox credentials.
+  The PayPal sandbox payment flow has been verified with sandbox credentials.
 - Pending questions are held **in memory** keyed by PayPal order id (demo-grade;
   a restart loses them, no TTL). Fine for the hackathon demo, not for production.
 - The demo UI is a single static file; the PayPal JS SDK is loaded from
   paypal.com with the sandbox client ID from `/api/config`.
 - Medical answers are generated from whatever you ingest; this is a demo, not
   medical advice (the UI says so).
+- Abstention and correct citations are model behaviors to evaluate, not formal guarantees. Retrieved source cards can appear even when they do not answer the question.
+- The app does not implement persistent payer/query history or automatic refunds for abstained answers. Pending orders are in memory.
