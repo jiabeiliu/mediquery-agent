@@ -118,8 +118,7 @@ a cited answer.
   That project's full pipeline was verified end-to-end on macOS.
 - The **PayPal module wires the real sandbox REST endpoints**
   (`/v1/oauth2/token`, `/v2/checkout/orders`, `/…/capture`) with no SDK.
-  It has **not yet been exercised against live sandbox credentials** — token
-  caching, order creation and capture need a real sandbox REST App to verify.
+    The PayPal sandbox payment flow has been verified with real sandbox credentials.
 - Pending questions are held **in memory** keyed by PayPal order id (demo-grade;
   a restart loses them, no TTL). Fine for the hackathon demo, not for production.
 - The demo UI is a single static file; the PayPal JS SDK is loaded from
